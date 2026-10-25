@@ -1,0 +1,948 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ember: the social network that burns out</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Unbounded:wght@600&display=swap">
+
+<style>
+:root {
+  --bg: #ece7ea;
+  --sf: #fbf9fa;
+  --ink: #1d1424;
+  --mute: #6b5b73;
+  --line: #d8cdd6;
+  --gold: #f0a000;
+  --flame: #ee4f10;
+  --crim: #cf1a50;
+  --ash: #a79bb0;
+  box-sizing: border-box;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #150f1c;
+    --sf: #211829;
+    --ink: #f7ece6;
+    --mute: #a893ac;
+    --line: #37283f;
+    --gold: #ffc43d;
+    --flame: #ff6a2b;
+    --crim: #e5245c;
+    --ash: #6b5f73;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-padding-top: 10px; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.5 "Instrument Sans", system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+#fx {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 9;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.bar {
+  max-width: 980px;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+}
+
+.logo {
+  font: 600 24px/1 Unbounded, sans-serif;
+  letter-spacing: -.03em;
+  background: linear-gradient(90deg, var(--gold), var(--flame), var(--crim));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.sub { color: var(--mute); font-size: 14px; }
+.sp { flex: 1; }
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--mute);
+}
+
+.stat b {
+  font: 600 15px Unbounded, sans-serif;
+  color: var(--ink);
+}
+
+#pips { display: inline-flex; gap: 4px; }
+
+#pips i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--line);
+  display: block;
+  transition: .3s;
+}
+
+#pips i.on {
+  background: var(--flame);
+  box-shadow: 0 0 8px var(--flame);
+}
+
+main {
+  position: relative;
+  z-index: 1;
+  max-width: 980px;
+  margin: auto;
+  padding: 18px 16px 60px;
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "side" "feed";
+}
+
+.feedcol { grid-area: feed; }
+aside { grid-area: side; }
+
+@media (min-width: 860px) {
+  main {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-areas: "feed side";
+  }
+
+  aside {
+    position: sticky;
+    top: 78px;
+    align-self: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .sub { display: none; }
+}
+
+.comp {
+  border-radius: 22px;
+  padding: 2px;
+  background: linear-gradient(120deg, var(--gold), var(--flame), var(--crim));
+  margin-bottom: 32px;
+}
+
+.comp > div {
+  background: var(--sf);
+  border-radius: 20px;
+  padding: 14px 16px;
+}
+
+textarea {
+  width: 100%;
+  resize: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  outline: none;
+}
+
+textarea::placeholder { color: var(--mute); }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.mu { color: var(--mute); font-size: 13px; }
+
+.btn, .chip {
+  font: inherit;
+  font-size: 14px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  padding: 6px 14px;
+  border-radius: 99px;
+  cursor: pointer;
+}
+
+.btn:hover, .chip:hover { border-color: var(--flame); }
+
+.btn:focus-visible, .chip:focus-visible,
+input:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--flame);
+  outline-offset: 2px;
+}
+
+.chip { padding: 4px 11px; font-size: 13px; }
+
+.chip.on {
+  border-color: var(--flame);
+  background: color-mix(in srgb, var(--flame) 18%, transparent);
+}
+
+.fuel, .go {
+  background: linear-gradient(90deg, var(--gold), var(--flame));
+  color: #230a02;
+  border: 0;
+  font-weight: 600;
+}
+
+.fuel.pop { animation: pop .3s; }
+
+@keyframes pop {
+  50% { transform: scale(1.18); }
+}
+
+.shake { animation: sh .3s; }
+
+@keyframes sh {
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.post {
+  position: relative;
+  padding: 2px 0 2px 26px;
+  margin-bottom: 30px;
+  transition: opacity .9s, transform .9s, filter .9s;
+}
+
+.post.ash {
+  opacity: 0;
+  transform: translateY(-10px);
+  filter: grayscale(1) blur(2px);
+}
+
+.rail {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 5px;
+  border-radius: 5px;
+  background: var(--line);
+}
+
+.rail i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 5px;
+  background: var(--c, var(--gold));
+  transition: height 1s linear, background 1s linear;
+}
+
+.rail i::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  width: 11px;
+  height: 11px;
+  margin-left: -5.5px;
+  border-radius: 50%;
+  background: var(--c, var(--gold));
+  box-shadow: 0 0 14px 4px var(--c, var(--gold));
+}
+
+.dying .rail i::after { animation: fl .7s infinite; }
+
+@keyframes fl {
+  50% { opacity: .35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dying .rail i::after, .fuel.pop, .shake {
+    animation: none;
+  }
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.av {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  background: var(--sf);
+  border: 1px solid var(--line);
+}
+
+.who b { font-weight: 600; }
+
+.vb {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--mute);
+  white-space: nowrap;
+}
+
+.post p {
+  margin: 8px 0 0;
+  font-size: 18px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  max-width: 62ch;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--mute);
+}
+
+.lt { font-weight: 600; color: var(--ink); }
+.acts { display: flex; gap: 8px; margin-top: 10px; }
+.thread { margin-top: 12px; font-size: 15px; }
+.rp { padding: 4px 0; }
+.rrow { display: flex; gap: 8px; margin-top: 8px; }
+
+.rrow input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 15px;
+  padding: 6px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--line);
+  background: var(--sf);
+  color: var(--ink);
+}
+
+.empty { color: var(--mute); padding: 30px 0; }
+
+.panel {
+  background: var(--sf);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.panel h2 { font-size: 16px; margin: 0 0 4px; }
+
+.panel p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--mute);
+}
+
+.dial { margin-bottom: 12px; }
+
+.ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+input[type=range] {
+  width: 100%;
+  accent-color: var(--flame);
+  margin: 4px 0 0;
+}
+
+details summary { cursor: pointer; font-weight: 600; }
+
+details ul {
+  padding-left: 18px;
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--mute);
+}
+
+details li { margin-bottom: 8px; }
+
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translate(-50%, 20px);
+  opacity: 0;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 9px 16px;
+  border-radius: 99px;
+  font-size: 14px;
+  transition: .3s;
+  z-index: 20;
+  pointer-events: none;
+  max-width: 90vw;
+  text-align: center;
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+</style>
+</head>
+
+<body>
+<canvas id="fx"></canvas>
+
+<header>
+  <div class="bar">
+    <span class="logo">ember</span>
+    <span class="sub">Everything burns out.</span>
+    <span class="sp"></span>
+    <span class="stat" title="Sparks fuel other people's posts.">
+      <span id="pips"></span>Sparks
+    </span>
+    <span class="stat">Glow <b id="glow">0</b></span>
+  </div>
+</header>
+
+<main>
+  <section class="feedcol">
+    <div class="comp">
+      <div>
+        <textarea id="txt" maxlength="240" rows="2"
+          placeholder="Light an ember. It burns for a few hours, then it's gone."></textarea>
+        <div class="row">
+          <span id="chips" class="row" style="margin:0"></span>
+          <span class="sp"></span>
+          <span class="mu" id="cnt">0/240</span>
+          <button class="btn go" id="go">Ignite</button>
+        </div>
+      </div>
+    </div>
+    <div id="feed"></div>
+  </section>
+
+  <aside>
+    <div class="panel">
+      <h2>Steer your feed</h2>
+      <p>Ember doesn't pick for you. Move a dial and the feed re-sorts.</p>
+
+      <div class="dial">
+        <div class="ends"><span>😌 Chill</span><span>Hype ⚡</span></div>
+        <input type="range" min="0" max="100" value="50"
+          data-k="mood" aria-label="Mood: chill to hype">
+      </div>
+
+      <div class="dial">
+        <div class="ends"><span>👥 Close circle</span><span>Discover 🧭</span></div>
+        <input type="range" min="0" max="100" value="50"
+          data-k="reach" aria-label="Reach: close circle to discover">
+      </div>
+
+      <div class="dial">
+        <div class="ends"><span>✨ Fresh</span><span>Fire 🔥</span></div>
+        <input type="range" min="0" max="100" value="50"
+          data-k="heat" aria-label="Heat: fresh to fire">
+      </div>
+    </div>
+
+    <div class="panel">
+      <details id="rules">
+        <summary>How Ember works</summary>
+        <ul>
+          <li>Every post burns out within 24 hours. Fuel from others keeps it alive longer.</li>
+          <li>Fuel is scarce. You get 5 sparks and they refill slowly.</li>
+          <li>No follower counts and no like counts. The flame is the only metric.</li>
+          <li>You choose how your feed is ranked, and every post tells you why it's there.</li>
+        </ul>
+      </details>
+    </div>
+
+    <div class="panel mu">
+      Embers burned out so far: <b id="ashes" style="color:var(--ink)">0</b>
+      <br>Demo time: 1 second is 2 minutes.
+    </div>
+  </aside>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+
+const MAX = 1440;
+
+const V = {
+  chill:    { e: .15, i: "😌", n: "Chill" },
+  curious:  { e: .4,  i: "🔍", n: "Curious" },
+  create:   { e: .65, i: "🎨", n: "Create" },
+  hype:     { e: .95, i: "⚡", n: "Hype" }
+};
+
+let uid = 0;
+let posts = [];
+let sparks = 5;
+let glow = 0;
+let ashes = 0;
+let vibe = "chill";
+let tt;
+let si = 0;
+
+const dial = { mood: 50, reach: 50, heat: 50 };
+
+const mk = (av, n, h, t, v, close, life, age) => ({
+  id: ++uid, av, n, h, t, v, close, life, age,
+  replies: [], open: false, me: false, dead: false
+});
+
+const SEED = [
+  ["🦊","Mira Okafor","mira","Just finished my first 10k. Legs are jelly, heart is full. Who's running the park loop Saturday?","hype",1,70,20],
+  ["🌙","Dev Patel","devp","Hot take: the best feature of any app is a last page. Let the feed end. Go touch grass.","chill",0,420,300],
+  ["🎨","Lucía Ferrer","lucia","Painted this skyline from memory at 2am. Posting it here because it'll be gone by tomorrow and that's oddly freeing.","create",1,900,90],
+  ["🧠","Kofi Mensah","kofi","Night owls: how do you actually wind down when your brain won't stop building things?","curious",0,160,200],
+  ["🐙","Sam Rivera","samr","Shipping a tiny side project tonight. 200 lines, one weekend, zero users. Wish me luck.","create",1,1100,40],
+  ["🍜","Jae Park","jae","Speed-cooking ramen with only a kettle and a dream. Starting in ten. Bring snacks.","hype",0,90,10],
+  ["🌿","Noor Haddad","noor","Slow morning, strong tea, a book I've been avoiding since March. Today we begin.","chill",1,600,150],
+  ["🔭","Ana Silva","ana","Light from the Sun takes about 8 minutes to reach us. You're always looking at the past.","curious",0,1250,15]
+];
+
+const SPAWN = [
+  ["🌊","Theo Brandt","theo","Anyone else get weirdly emotional about a really good sandwich? Asking for me.","chill",0],
+  ["🎧","Rae Kim","rae","New rule: one song on repeat until it's ruined. Today's victim is a 2009 synth-pop deep cut.","hype",1],
+  ["🪴","Ivy Chen","ivy","My plant finally flowered after 14 months of me doing nothing. Relatable growth.","chill",1],
+  ["🚲","Omar Aziz","omar","Rode to work through the fog. The city looked like a dream somebody forgot to finish.","create",0],
+  ["🧩","Priya Nair","priya","What's a skill you keep postponing? Mine is pottery. Hands in clay, someday.","curious",1],
+  ["💃","Leo Costa","leo","Posting without a like counter feels like dancing when nobody's watching. Highly recommend.","hype",0]
+];
+
+const RN = ["Ivy","Theo","Rae","Omar","Priya","Leo"];
+
+const RT = [
+  "Needed this today.",
+  "Same energy over here.",
+  "Okay, now I'm curious. Say more?",
+  "Fueling this before it burns out.",
+  "This deserves a longer life."
+];
+
+SEED.forEach(s => posts.push(mk(...s)));
+
+const fmt = m => {
+  m = Math.max(0, Math.round(m));
+  const h = Math.floor(m / 60);
+  return h ? h + "h " + (m % 60) + "m" : m + "m";
+};
+
+const esc = s => s.replace(/[&<>"]/g, c => ({
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;"
+}[c]));
+
+const typing = () =>
+  document.activeElement &&
+  document.activeElement.tagName === "INPUT" &&
+  document.activeElement.closest("#feed");
+
+function toast(m) {
+  const t = $("#toast");
+  t.textContent = m;
+  t.classList.add("show");
+  clearTimeout(tt);
+  tt = setTimeout(() => t.classList.remove("show"), 2300);
+}
+
+function score(p) {
+  const m = 1 - Math.abs(V[p.v].e - dial.mood / 100);
+  const r = 1 - Math.abs((p.close ? 0 : 1) - dial.reach / 100);
+  const h = dial.heat / 100;
+
+  const hv =
+    h * Math.max(0, p.life / MAX) * 1.6 +
+    (1 - h) * Math.max(0, 1 - p.age / 360);
+
+  const t = [
+    [m, V[p.v].n + " vibe that fits your mood"],
+    [r, p.close ? "From your close circle" : "Found for you in Discover"],
+    [hv, h > .5 ? "Burning bright" : "Fresh off the fire"]
+  ].sort((a, b) => b[0] - a[0]);
+
+  return { s: m + r + hv, why: t[0][1] };
+}
+
+const thread = p =>
+  p.replies.map(r =>
+    `<div class="rp"><b>${esc(r.n)}</b> ${esc(r.t)}</div>`
+  ).join("") +
+  `<div class="rrow">
+    <input placeholder="Add to the fire" maxlength="120" aria-label="Reply">
+    <button class="btn" data-a="send">Send</button>
+  </div>`;
+
+const card = (p, w) => `
+  <article class="post" data-id="${p.id}">
+    <div class="rail"><i></i></div>
+    <div class="who">
+      <span class="av">${p.av}</span>
+      <b>${esc(p.n)}</b>
+      <span class="mu">@${p.h}</span>
+      <span class="vb">${V[p.v].i} ${V[p.v].n}</span>
+    </div>
+    <p>${esc(p.t)}</p>
+    <div class="meta">
+      <span class="lt"></span>
+      <span>${w}</span>
+    </div>
+    <div class="acts">
+      <button class="btn fuel" data-a="fuel">🔥 Fuel</button>
+      <button class="btn" data-a="thread">💬 ${p.replies.length || "Reply"}</button>
+    </div>
+    <div class="thread" ${p.open ? "" : "hidden"}>${thread(p)}</div>
+  </article>`;
+
+function render() {
+  const L = posts
+    .filter(p => !p.dead)
+    .map(p => ({ p, ...score(p) }))
+    .sort((a, b) => b.s - a.s);
+
+  $("#feed").innerHTML =
+    L.map(x => card(x.p, x.why)).join("") ||
+    `<p class="empty">Every ember has burned out. Light a new one above.</p>`;
+
+  paint();
+}
+
+const heat = f => {
+  const h = 8 + 38 * Math.max(0, (f - .35) / .65)
+    - 24 * Math.max(0, (.35 - f) / .35);
+  const s = f > .1 ? 95 : 40 + 55 * f / .1;
+  return `hsl(${h} ${s}% 56%)`;
+};
+
+function paint() {
+  document.querySelectorAll("#feed .post").forEach(c => {
+    const p = posts.find(q => q.id == c.dataset.id);
+    if (!p) return;
+
+    const f = Math.max(0, p.life / MAX);
+    c.style.setProperty("--c", heat(f));
+    c.querySelector(".rail i").style.height = Math.max(2, f * 100) + "%";
+    c.querySelector(".lt").textContent =
+      p.life <= 0 ? "Burned out" : fmt(p.life) + " left";
+
+    c.classList.toggle("dying", f < .08);
+  });
+
+  $("#glow").textContent = glow;
+  $("#ashes").textContent = ashes;
+
+  $("#pips").innerHTML = [0,1,2,3,4]
+    .map(i => `<i class="${i < sparks ? "on" : ""}"></i>`)
+    .join("");
+}
+
+function fuel(p, b) {
+  if (p.me) {
+    toast("You can't fuel your own ember. Let others do it.");
+    return;
+  }
+
+  if (sparks <= 0) {
+    b.classList.add("shake");
+    setTimeout(() => b.classList.remove("shake"), 300);
+    toast("Out of sparks. One refills every 12 seconds.");
+    return;
+  }
+
+  sparks--;
+  p.life = Math.min(MAX, p.life + 30);
+  b.classList.add("pop");
+  setTimeout(() => b.classList.remove("pop"), 300);
+  burst(b);
+  paint();
+}
+
+function reply(p, c) {
+  const i = c.querySelector(".rrow input");
+  const t = i.value.trim();
+  if (!t) return;
+
+  p.replies.push({ n: "You", t });
+  p.life = Math.min(MAX, p.life + 5);
+
+  c.querySelector(".thread").innerHTML = thread(p);
+  c.querySelector(".thread input").focus();
+  c.querySelector("[data-a=thread]").textContent = "💬 " + p.replies.length;
+  paint();
+
+  if (Math.random() < .7) {
+    setTimeout(() => {
+      if (p.dead) return;
+
+      p.replies.push({ n: pick(RN), t: pick(RT) });
+      p.life = Math.min(MAX, p.life + 5);
+
+      const e = document.querySelector(`.post[data-id="${p.id}"]`);
+
+      if (e) {
+        e.querySelector("[data-a=thread]").textContent = "💬 " + p.replies.length;
+        if (p.open && !typing()) {
+          e.querySelector(".thread").innerHTML = thread(p);
+        }
+      }
+    }, 2200);
+  }
+}
+
+$("#feed").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+
+  const c = b.closest(".post");
+  const p = posts.find(q => q.id == c.dataset.id);
+  if (!p) return;
+
+  if (b.dataset.a === "fuel") fuel(p, b);
+
+  if (b.dataset.a === "thread") {
+    p.open = !p.open;
+    c.querySelector(".thread").hidden = !p.open;
+  }
+
+  if (b.dataset.a === "send") reply(p, c);
+});
+
+$("#feed").addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target.tagName === "INPUT") {
+    const c = e.target.closest(".post");
+    reply(posts.find(q => q.id == c.dataset.id), c);
+  }
+});
+
+document.querySelectorAll("[data-k]").forEach(r =>
+  r.addEventListener("input", () => {
+    dial[r.dataset.k] = +r.value;
+    render();
+  })
+);
+
+function chips() {
+  $("#chips").innerHTML = Object.entries(V).map(([k, v]) =>
+    `<button class="chip${k === vibe ? " on" : ""}" data-v="${k}">
+      ${v.i} ${v.n}
+    </button>`
+  ).join("");
+}
+
+$("#chips").addEventListener("click", e => {
+  const b = e.target.closest("[data-v]");
+  if (b) {
+    vibe = b.dataset.v;
+    chips();
+  }
+});
+
+$("#txt").addEventListener("input", e => {
+  $("#cnt").textContent = e.target.value.length + "/240";
+});
+
+$("#go").addEventListener("click", () => {
+  const t = $("#txt").value.trim();
+
+  if (!t) {
+    toast("Write something first. Embers need a spark.");
+    return;
+  }
+
+  const p = mk("😎", "You", "you", t, vibe, 1, 180, 0);
+  p.me = true;
+  posts.push(p);
+
+  $("#txt").value = "";
+  $("#cnt").textContent = "0/240";
+  render();
+
+  toast("Your ember is lit. It has 3 hours unless people fuel it.");
+});
+
+/* Posts lose life over time. One second represents two minutes. */
+setInterval(() => {
+  posts.forEach(p => {
+    if (!p.dead) {
+      p.life -= 2;
+      p.age += 2;
+    }
+  });
+
+  paint();
+
+  posts.forEach(p => {
+    if (p.life <= 0 && !p.dead) {
+      p.dead = true;
+      ashes++;
+
+      const c = document.querySelector(`.post[data-id="${p.id}"]`);
+      if (c) c.classList.add("ash");
+
+      setTimeout(() => {
+        posts = posts.filter(q => q !== p);
+        if (c) c.remove();
+
+        if (!document.querySelector("#feed .post")) render();
+        paint();
+      }, 900);
+    }
+  });
+}, 1000);
+
+/* Sparks regenerate slowly. */
+setInterval(() => {
+  if (sparks < 5) {
+    sparks++;
+    paint();
+  }
+}, 12000);
+
+/* Simulate people fueling posts. */
+setInterval(() => {
+  const a = posts.filter(p => !p.dead);
+  if (!a.length) return;
+
+  const p = pick(a.flatMap(x => x.me ? [x, x, x] : [x]));
+  p.life = Math.min(MAX, p.life + 30);
+
+  if (p.me) {
+    glow++;
+    toast("🔥 Someone fueled your ember. Glow +1");
+  }
+
+  paint();
+}, 4500);
+
+/* Simulate new community posts. */
+setInterval(() => {
+  if (typing() || posts.filter(p => !p.dead).length >= 11) return;
+
+  posts.push(mk(
+    ...SPAWN[si++ % SPAWN.length],
+    300 + Math.random() * 600,
+    0
+  ));
+
+  render();
+}, 16000);
+
+/* Floating ember particle animation. */
+const cv = $("#fx");
+const cx = cv.getContext("2d");
+const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+let W, H, ps = [];
+
+function size() {
+  const d = devicePixelRatio || 1;
+  W = innerWidth;
+  H = innerHeight;
+  cv.width = W * d;
+  cv.height = H * d;
+  cx.setTransform(d, 0, 0, d, 0, 0);
+}
+
+addEventListener("resize", size);
+size();
+
+const spawn = (x, y, b) => ps.push({
+  x,
+  y,
+  vx: b ? (Math.random() - .5) * 6 : (Math.random() - .5) * .4,
+  vy: b ? -Math.random() * 4 - 1 : -Math.random() * .8 - .3,
+  g: b ? .12 : 0,
+  l: 0,
+  m: b ? 45 + Math.random() * 30 : 220 + Math.random() * 200,
+  r: b ? 2 + Math.random() * 2.5 : 1 + Math.random() * 1.8,
+  b
+});
+
+function burst(el) {
+  if (rm) return;
+
+  const r = el.getBoundingClientRect();
+
+  for (let i = 0; i < 24; i++) {
+    spawn(r.left + r.width / 2, r.top + r.height / 2, 1);
+  }
+}
+
+(function loop() {
+  cx.clearRect(0, 0, W, H);
+
+  const s = getComputedStyle(document.documentElement);
+  const fl = s.getPropertyValue("--flame").trim() || "#ee4f10";
+  const go = s.getPropertyValue("--gold").trim() || "#f0a000";
+
+  if (!rm && Math.random() < .2 && ps.length < 80) {
+    spawn(Math.random() * W, H + 10, 0);
+  }
+
+  ps = ps.filter(p => {
+    p.l++;
+    p.x += p.vx + Math.sin(p.l / 20) * .2;
+    p.y += p.vy;
+    p.vy += p.g;
+
+    if (p.l > p.m) return false;
+
+    cx.globalAlpha = (1 - p.l / p.m) * (p.b ? 1 : .4);
+    cx.fillStyle = p.b && p.l % 2 ? go : fl;
+    cx.beginPath();
+    cx.arc(p.x, p.y, p.r, 0, 6.3);
+    cx.fill();
+
+    return true;
+  });
+
+  cx.globalAlpha = 1;
+  requestAnimationFrame(loop);
+})();
+
+chips();
+render();
+
+if (innerWidth >= 860) {
+  $("#rules").open = true;
+}
+
+setTimeout(() => {
+  toast("Welcome to Ember. You have 5 sparks. Spend them wisely.");
+}, 700);
+</script>
+</body>
+</html>
